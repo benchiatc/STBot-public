@@ -1,0 +1,21 @@
+.env
+.env.*
+!.env.example
+.broadcast-progress/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.DS_Store
+*sync-conflict*
+*.ipynb
+file.txt
+ANNOUNCEMENTS.md
+broadcast_announcement.py
+deprecation_message.txt
+ST Chat5pt Retirement Celebration.png
+dist/

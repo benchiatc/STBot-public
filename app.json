@@ -1,0 +1,18 @@
+{
+  "name": "ST Chat5pt",
+  "description": "Telegram news summaries using Flask, MongoDB Atlas, OpenAI, and Heroku Scheduler.",
+  "stack": "heroku-24",
+  "buildpacks": [{"url": "heroku/python"}],
+  "formation": {"web": {"quantity": 1, "size": "basic"}},
+  "addons": [{"plan": "scheduler:standard"}],
+  "env": {
+    "BOT_TOKEN": {"description": "Your Telegram bot token from BotFather."},
+    "MONGODB_URI": {"description": "Your MongoDB Atlas connection string, with access to the article and user databases."},
+    "OPENAI_API_KEY": {"description": "Your OpenAI API key for generating article summaries."},
+    "PUBLIC_BASE_URL": {"description": "This app's HTTPS origin from Heroku app settings, including its generated domain suffix."},
+    "WEBHOOK_SECRET": {"description": "Secret used to authenticate Telegram webhook deliveries.", "generator": "secret"},
+    "OPENAI_MODEL": {"value": "gpt-5-mini"},
+    "NOTIFICATIONS_ENABLED": {"value": "true"},
+    "ADMIN_USER_IDS": {"description": "Optional comma-separated Telegram user IDs allowed to view subscriber counts.", "required": false}
+  }
+}

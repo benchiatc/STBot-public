@@ -1,0 +1,20 @@
+.git/
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+__pycache__/
+tests/
+.pytest_cache/
+.ruff_cache/
+*.ipynb
+*sync-conflict*
+.DS_Store
+.broadcast-progress/
+broadcast_announcement.py
+ANNOUNCEMENTS.md
+deprecation_message.txt
+ST Chat5pt Retirement Celebration.png
+file.txt
+dist/
