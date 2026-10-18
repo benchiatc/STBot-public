@@ -1,33 +1,131 @@
 # ST Chat5pt
 
-A Telegram bot that turns public Straits Times articles into six-point news summaries.
-Readers browse headlines by section or receive morning, lunchtime, and evening digests.
-Premium articles link to the publisher instead of being summarized.
+**An independently built AI news service with 600+ registered Telegram users.**
 
-## How it works
+I owned product scope, Python implementation, AI integration, and deployment.
+The service turns public news articles into six-point summaries, with section
+menus, source links, and three daily Telegram digests.
+
+> The original hosted bot is scheduled to retire on **24 October 2026**.
+> This repository contains a cleaned-up version for inspection and self-hosting.
+
+## Contents
+
+- [Problem and product](#problem-and-product)
+- [Product decisions](#product-decisions)
+- [Architecture](#architecture)
+- [Adoption](#adoption)
+- [Cost to run](#cost-to-run)
+- [Quality and next steps](#quality-and-next-steps)
+- [Run your own instance](#run-your-own-instance)
+- [Code and development](#code-and-development)
+
+## Problem and product
+
+As a public-sector officer, I needed to follow current affairs and prepare timely
+updates for decision-makers. Inbox alerts, lengthy articles, and manual filtering
+made that harder than it needed to be.
+
+I built for my own workflow first, with Singapore public-sector officers as an
+accessible initial audience. Readers choose a news section, scan up to nine
+headlines, and tap a number for a summary. Optional morning, lunchtime, and evening
+digests make checking the news part of an existing Telegram routine.
+
+## Product decisions
+
+The project was **self-funded and built independently**, so scope, adoption, and
+operating effort mattered alongside technical feasibility.
+
+| Consideration | Decision |
+| --- | --- |
+| **Desirability** | Start with a concrete news-monitoring problem and reduce the effort of scanning and filtering articles. |
+| **Feasibility** | Use familiar Python libraries, Telegram's existing interface, and managed hosting and storage to deliver the service myself. |
+| **Viability** | Automate article refreshes and share cached summaries across readers to control model spend and maintenance effort. |
+
+Telegram reduced the need to build and distribute a separate frontend. Heroku and
+MongoDB Atlas kept infrastructure manageable. The initial product tested a focused
+reading workflow within a broader opportunity for professional news intelligence.
+
+## Architecture
 
 ```mermaid
 flowchart LR
     Telegram -->|authenticated webhook| Web[Heroku web dyno: Flask + Gunicorn]
-    Web <-->|users, navigation, cached summaries| Mongo[(MongoDB Atlas)]
-    Web -->|APScheduler: daily digests| Telegram
-    Scheduler[Heroku Scheduler] --> Scraper[One-off dyno: stbot.ingestion]
+    Web <-->|preferences, navigation, cached summaries| Mongo[(MongoDB Atlas)]
+    Web -->|scheduled news digests| Telegram
+    Scheduler[Heroku Scheduler] --> Scraper[One-off article refresh]
     Scraper --> ST[Straits Times public pages]
     Scraper --> OpenAI[OpenAI Responses API]
     Scraper --> Mongo
 ```
 
-The web process serves cached content; opening an article in Telegram does not call
-OpenAI. A separate scraper discovers articles, checks modification timestamps,
-generates summaries using `gpt-5-mini`, and rebuilds the digest feed. MongoDB stores
-articles, subscribers, notification preferences, and each chat's current selection.
+The Python pipeline uses Beautiful Soup for extraction and OpenAI for summarisation.
+Early versions used browser automation; the current source uses the Responses API.
 
-The deployment uses **one always-on web dyno with one Gunicorn worker**. Its
-APScheduler instance sends digests at approximately **08:06, 12:00, and 19:00
-Asia/Singapore**, with up to ten seconds of jitter. Do not increase web dynos or
-Gunicorn workers without first moving the digest scheduler into its own singleton
-process; otherwise subscribers can receive duplicate digests. A sleeping dyno can
-miss scheduled digests.
+- **Prepare once, serve many:** summarise new or updated articles, then reuse stored
+  results. Reader selections do not trigger model calls; freshness follows the refresh schedule.
+- **Separate processing from delivery:** scheduled ingestion prepares content while
+  the Flask webhook serves cached summaries. Failed summaries are retried on a later refresh.
+- **Persist reader state:** MongoDB stores preferences and selections across restarts;
+  chat IDs identify subscribers independently of usernames.
+- **Respect source access:** include original links and show subscription notices for
+  premium articles, without sending them to OpenAI or bypassing paywalls.
+
+See the [article pipeline](stbot/ingestion.py), [Telegram experience](stbot/bot.py),
+[persistence layer](stbot/database.py), and [webhook application](stbot/web.py).
+
+## Adoption
+
+Production MongoDB snapshot on **18 October 2026**:
+
+| Measure | Count |
+| --- | ---: |
+| Registered individual Telegram accounts | **603** |
+| Individual chats with digests enabled | **537** |
+
+Counts use distinct private chat/user IDs, excluding duplicates and two group chats.
+One chat with conflicting legacy preferences is excluded from the enabled count.
+Notifications default to on. These are registrations and saved settings; activity,
+article clicks, retention, and successful delivery were not measured.
+
+## Cost to run
+
+Approximate spend at the original bot's workload, using a 30-day month:
+
+| Component | Basis | Monthly cost (USD) |
+| --- | --- | ---: |
+| OpenAI API (`gpt-5-mini`) | US$0.80/day × 30 | US$24 |
+| Heroku hosting and dyno usage | Reported monthly spend | US$8 |
+| **Total for API and hosting** | | **US$32** |
+
+Based on my reported spend; actual costs vary with article volume, model choice,
+and hosting usage. Any database charges or taxes are additional.
+
+## Quality and next steps
+
+The current source has **36 automated tests** plus CI lint and formatting checks,
+covering extraction, caching, retries, preferences, navigation, and webhook security.
+Tests use mocked services; they establish application behaviour, while summary
+factuality still needs a human-reviewed benchmark. See the
+[pipeline checks](tests/test_ingestion.py) and [bot checks](tests/test_bot.py).
+
+The operating model uses one always-on web dyno and one Gunicorn worker to avoid
+duplicate digests. Publisher layout changes and missed scheduled runs remain
+practical limitations; deployment and recovery details follow below.
+
+My next priorities would be summary-quality evaluation and usage measurement before
+expanding scope. The wider vision was personalised news intelligence: topic/country
+filters, searchable digest archives, authorised custom feeds, cross-article reports,
+and email or dashboard delivery. These remain future ideas.
+
+## Run your own instance
+
+The source is configured for the same Heroku-based architecture. Bring your own
+Telegram bot, database, and OpenAI credentials; the setup below covers the initial
+feed refresh, webhook registration, and scheduled article updates.
+
+<details>
+<summary><strong>Requirements, local setup, and Heroku deployment</strong></summary>
 
 ## Requirements
 
@@ -56,18 +154,18 @@ chmod 600 .env
 Fill in `.env`. Local entry points load it without overriding existing environment
 variables. Never commit this file.
 
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `BOT_TOKEN` | Your Telegram bot's token | Required for the web server and setup |
-| `MONGODB_URI` | Your Atlas connection string | Required |
-| `OPENAI_API_KEY` | API credential for article summaries | Required for the scraper |
-| `PUBLIC_BASE_URL` | This deployment's HTTPS origin, without a path | Required for webhook setup |
-| `WEBHOOK_SECRET` | Secret Telegram sends in its webhook authentication header | Required for web/setup |
-| `OPENAI_MODEL` | Model used for summaries | `gpt-5-mini` |
-| `ARTICLE_DATABASE` | Article database name | `st_articles` |
-| `USER_DATABASE` | Subscriber database name | `user_base` |
-| `NOTIFICATIONS_ENABLED` | Start the daily digest scheduler (`true`/`false`) | `true` |
-| `ADMIN_USER_IDS` | Comma-separated numeric Telegram IDs allowed to use `/seecurrentusers` | Disabled if empty |
+| Variable                | Purpose                                                                | Default                               |
+| ----------------------- | ---------------------------------------------------------------------- | ------------------------------------- |
+| `BOT_TOKEN`             | Your Telegram bot's token                                              | Required for the web server and setup |
+| `MONGODB_URI`           | Your Atlas connection string                                           | Required                              |
+| `OPENAI_API_KEY`        | API credential for article summaries                                   | Required for the scraper              |
+| `PUBLIC_BASE_URL`       | This deployment's HTTPS origin, without a path                         | Required for webhook setup            |
+| `WEBHOOK_SECRET`        | Secret Telegram sends in its webhook authentication header             | Required for web/setup                |
+| `OPENAI_MODEL`          | Model used for summaries                                               | `gpt-5-mini`                          |
+| `ARTICLE_DATABASE`      | Article database name                                                  | `st_articles`                         |
+| `USER_DATABASE`         | Subscriber database name                                               | `user_base`                           |
+| `NOTIFICATIONS_ENABLED` | Start the daily digest scheduler (`true`/`false`)                      | `true`                                |
+| `ADMIN_USER_IDS`        | Comma-separated numeric Telegram IDs allowed to use `/seecurrentusers` | Disabled if empty                     |
 
 Generate a webhook secret with:
 
@@ -135,6 +233,10 @@ dependencies, and an `app.json` manifest. No application-code edits are needed.
    database and collection names, so existing article and subscriber data remains
    readable; registration now identifies users by chat ID rather than username.
 
+   Daily digests run at approximately **08:06, 12:00, and 19:00 Asia/Singapore**,
+   with up to ten seconds of jitter. Keep one web dyno and one Gunicorn worker;
+   multiple scheduler instances can send duplicate digests.
+
 5. Install Heroku Scheduler if it was not provisioned through `app.json`:
 
    ```sh
@@ -174,7 +276,12 @@ messages, but are not offered in the current menu. The scraper collects the seve
 current sections. No personal profile, donation links, feedback forms, announcement
 commands, or one-off retirement tools are part of the application.
 
-## Development
+</details>
+
+## Code and development
+
+<details>
+<summary><strong>Development setup, source map, and operating details</strong></summary>
 
 ```sh
 python -m pip install -r requirements-dev.txt
@@ -187,14 +294,14 @@ The tests use mocked Telegram/OpenAI clients and an in-memory MongoDB replacemen
 They do not read local credentials, change a live database, or send Telegram messages.
 GitHub Actions runs the same checks.
 
-| Path | Responsibility |
-| --- | --- |
-| `stbot/config.py` | Environment configuration and section definitions |
-| `stbot/database.py` | MongoDB access, indexes, feed refresh, and scraper lease |
-| `stbot/bot.py` | Telegram menus, summaries, preferences, and digests |
-| `stbot/web.py` | WSGI factory, webhook authentication, and scheduler lifecycle |
+| Path                 | Responsibility                                                  |
+| -------------------- | --------------------------------------------------------------- |
+| `stbot/config.py`    | Environment configuration and section definitions               |
+| `stbot/database.py`  | MongoDB access, indexes, feed refresh, and scraper lease        |
+| `stbot/bot.py`       | Telegram menus, summaries, preferences, and digests             |
+| `stbot/web.py`       | WSGI factory, webhook authentication, and scheduler lifecycle   |
 | `stbot/ingestion.py` | Scheduled scraper CLI, article extraction, and OpenAI summaries |
-| `stbot/setup.py` | Deployment initialization and webhook registration |
+| `stbot/setup.py`     | Deployment initialization and webhook registration              |
 
 The scraper retains the original behavior of removing the oldest 20% of article
 records if Atlas reports its storage quota is exceeded, then retries the write.
@@ -203,16 +310,4 @@ overlapping hourly scraper invocations; schedule a longer interval if a refresh
 takes longer than an hour. Article and digest errors log exception types, not
 credentials, user profiles, or full request URLs.
 
-## Publishing a previously private copy
-
-The ignore rules exclude local credentials, Python environments, bytecode, and
-development caches. Heroku's slug exclusions also omit tests, CI configuration,
-and development-only documentation and dependencies. Notebooks, exports, retirement
-materials, and delivery receipts are not included in this source tree.
-Ignoring a file does not remove it from older commits: if credentials
-ever existed in a repository's history, publish a clean source snapshot into a new
-repository rather than pushing that old history, and rotate the old credentials
-with their providers. Removing a secret from the latest source is not revocation.
-
-The API integration follows the [OpenAI text-generation documentation](https://platform.openai.com/docs/guides/text)
-and uses the existing six-point prompt and `response.output_text`.
+</details>
