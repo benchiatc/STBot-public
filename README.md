@@ -207,9 +207,11 @@ credentials, user profiles, or full request URLs.
 
 ## Publishing a previously private copy
 
-Environment files, notebooks, exports, local environments, retirement materials,
-and delivery receipts do not belong in a public source tree. Ignore rules cover
-those files. Ignoring a file does not remove it from older commits: if credentials
+The ignore rules exclude local credentials, Python environments, bytecode, and
+development caches. Heroku's slug exclusions also omit tests, CI configuration,
+and development-only documentation and dependencies. Notebooks, exports, retirement
+materials, and delivery receipts are not included in this source tree.
+Ignoring a file does not remove it from older commits: if credentials
 ever existed in a repository's history, publish a clean source snapshot into a new
 repository rather than pushing that old history, and rotate the old credentials
 with their providers. Removing a secret from the latest source is not revocation.

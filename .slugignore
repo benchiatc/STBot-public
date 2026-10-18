@@ -1,20 +1,17 @@
 .git/
 .env
 .env.*
-!.env.example
 .venv/
 venv/
 __pycache__/
+*.py[cod]
+
+# Development-only files are kept on GitHub, but are not needed by Heroku.
+.github/
 tests/
+requirements-dev.txt
+pyproject.toml
+README.md
 .pytest_cache/
 .ruff_cache/
-*.ipynb
-*sync-conflict*
 .DS_Store
-.broadcast-progress/
-broadcast_announcement.py
-ANNOUNCEMENTS.md
-deprecation_message.txt
-ST Chat5pt Retirement Celebration.png
-file.txt
-dist/
