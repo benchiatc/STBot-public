@@ -170,11 +170,11 @@ def test_runtime_entry_points_are_safe_to_import():
         patch("stbot.config.Settings.from_env", side_effect=AssertionError("loaded live config")),
         patch("stbot.database.MongoClient", side_effect=AssertionError("connected to database")),
     ):
-        import st_chat5pt_bot
-        import wrapper_gpt
+        import stbot.ingestion
+        import stbot.web
 
-        importlib.reload(st_chat5pt_bot)
-        importlib.reload(wrapper_gpt)
+        importlib.reload(stbot.ingestion)
+        importlib.reload(stbot.web)
 
 
 def test_html_chunks_are_bounded_and_time_display_is_explicit():

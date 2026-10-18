@@ -214,3 +214,17 @@ def main():
                 {"User-Agent": "Mozilla/5.0", "Accept-Language": "en-US,en;q=0.9"}
             )
             refresh_articles(repository, session, openai_client, settings.openai_model)
+
+
+def cli():
+    """Run the scheduled refresh without exposing credentials in error output."""
+    try:
+        main()
+    except Exception as error:
+        logger.error("Article refresh failed (%s)", type(error).__name__)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(cli())

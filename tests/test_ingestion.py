@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from stbot import ingestion
 from stbot.ingestion import (
     PREMIUM_NOTICE,
     discover_links,
@@ -12,6 +13,15 @@ from stbot.ingestion import (
     summarize,
     timestamp,
 )
+
+
+def test_cli_returns_exit_status_and_redacts_failure_details(monkeypatch, caplog):
+    monkeypatch.setattr(ingestion, "main", Mock())
+    assert ingestion.cli() == 0
+    monkeypatch.setattr(ingestion, "main", Mock(side_effect=ValueError("private credential")))
+    assert ingestion.cli() == 1
+    assert "ValueError" in caplog.text
+    assert "private credential" not in caplog.text
 
 
 def listing():

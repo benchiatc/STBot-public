@@ -11,7 +11,7 @@ flowchart LR
     Telegram -->|authenticated webhook| Web[Heroku web dyno: Flask + Gunicorn]
     Web <-->|users, navigation, cached summaries| Mongo[(MongoDB Atlas)]
     Web -->|APScheduler: daily digests| Telegram
-    Scheduler[Heroku Scheduler] --> Scraper[One-off dyno: wrapper_gpt.py]
+    Scheduler[Heroku Scheduler] --> Scraper[One-off dyno: stbot.ingestion]
     Scraper --> ST[Straits Times public pages]
     Scraper --> OpenAI[OpenAI Responses API]
     Scraper --> Mongo
@@ -80,7 +80,7 @@ The web app listens on `/telegram/webhook` and requires the
 checks; they do not register or change the webhook. Run the server locally with:
 
 ```sh
-gunicorn 'st_chat5pt_bot:create_app()' --workers 1 --threads 4 --bind 127.0.0.1:5000
+gunicorn 'stbot.web:create_app()' --workers 1 --threads 4 --bind 127.0.0.1:5000
 ```
 
 For end-to-end local testing, expose that port through an HTTPS tunnel, set its
@@ -88,7 +88,7 @@ origin as `PUBLIC_BASE_URL`, and run `python -m stbot.setup`. Use a separate tes
 bot: Telegram supports a single webhook URL per bot. To populate the database:
 
 ```sh
-python wrapper_gpt.py
+python -m stbot.ingestion
 ```
 
 This command calls OpenAI for newly discovered or changed public articles. Premium
@@ -142,13 +142,13 @@ dependencies, and an `app.json` manifest. No application-code edits are needed.
    heroku addons:open scheduler
    ```
 
-   Add **`python wrapper_gpt.py`**, running **hourly**. The manifest installs the
+   Add **`python -m stbot.ingestion`**, running **hourly**. The manifest installs the
    add-on but does not create this schedule; that dashboard step is required.
    Each invocation runs in a one-off dyno and exits after refreshing the articles.
    Test the command once and populate the initial news feed:
 
    ```sh
-   heroku run python wrapper_gpt.py
+   heroku run python -m stbot.ingestion
    ```
 
 6. Open your bot in Telegram and send `/start`. Check a news section, open a
@@ -189,13 +189,11 @@ GitHub Actions runs the same checks.
 
 | Path | Responsibility |
 | --- | --- |
-| `st_chat5pt_bot.py` | WSGI application factory export |
-| `wrapper_gpt.py` | Scheduled scraper entry point |
 | `stbot/config.py` | Environment configuration and section definitions |
 | `stbot/database.py` | MongoDB access, indexes, feed refresh, and scraper lease |
 | `stbot/bot.py` | Telegram menus, summaries, preferences, and digests |
-| `stbot/web.py` | Webhook authentication and scheduler lifecycle |
-| `stbot/ingestion.py` | Article discovery, extraction, and OpenAI summaries |
+| `stbot/web.py` | WSGI factory, webhook authentication, and scheduler lifecycle |
+| `stbot/ingestion.py` | Scheduled scraper CLI, article extraction, and OpenAI summaries |
 | `stbot/setup.py` | Deployment initialization and webhook registration |
 
 The scraper retains the original behavior of removing the oldest 20% of article
