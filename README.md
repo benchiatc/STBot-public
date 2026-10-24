@@ -1,9 +1,9 @@
-# ST Chat5pt
+<h1><img src="docs/assets/st-chat5pt-icon.png" width="64" height="64" align="absmiddle" alt="ST Chat5pt app icon"> ST Chat5pt</h1>
 
 <table>
   <tr>
     <td><strong>Officially retired on 24 Oct 2026.</strong><br>The source remains available for inspection and self-hosting.</td>
-    <td><a href="docs/assets/st-chat5pt-farewell.png"><img src="docs/assets/st-chat5pt-farewell.png" width="80" alt="ST Chat5pt farewell poster"></a></td>
+    <td><a href="docs/assets/st-chat5pt-farewell.png"><img src="docs/assets/st-chat5pt-farewell.png" width="160" alt="ST Chat5pt farewell poster"></a></td>
   </tr>
 </table>
 
@@ -23,6 +23,7 @@ menus, source links, and three daily Telegram digests.
 - [Quality and next steps](#quality-and-next-steps)
 - [Run your own instance](#run-your-own-instance)
 - [Code and development](#code-and-development)
+- [Credits](#credits)
 
 ## Problem and product
 
@@ -315,3 +316,7 @@ takes longer than an hour. Article and digest errors log exception types, not
 credentials, user profiles, or full request URLs.
 
 </details>
+
+## Credits
+
+Original ST Chat5pt logo designed by [Carlsson Chee](https://www.carlssonchee.com/).
