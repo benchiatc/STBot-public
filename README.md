@@ -1,13 +1,17 @@
 # ST Chat5pt
 
+<table>
+  <tr>
+    <td><strong>Officially retired on 24 Oct 2026.</strong><br>The source remains available for inspection and self-hosting.</td>
+    <td><a href="docs/assets/st-chat5pt-farewell.png"><img src="docs/assets/st-chat5pt-farewell.png" width="80" alt="ST Chat5pt farewell poster"></a></td>
+  </tr>
+</table>
+
 **An independently built AI news service with 600+ registered Telegram users.**
 
 I owned product scope, Python implementation, AI integration, and deployment.
 The service turns public news articles into six-point summaries, with section
 menus, source links, and three daily Telegram digests.
-
-> The original hosted bot is scheduled to retire on **24 October 2026**.
-> This repository contains a cleaned-up version for inspection and self-hosting.
 
 ## Contents
 

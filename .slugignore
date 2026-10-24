@@ -12,6 +12,7 @@ tests/
 requirements-dev.txt
 pyproject.toml
 README.md
+docs/
 .pytest_cache/
 .ruff_cache/
 .DS_Store
